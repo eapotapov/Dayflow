@@ -4,20 +4,46 @@
 
 Dayflow is a native macOS application built with SwiftUI that captures screen activity, analyzes it with AI, and presents an intelligent timeline of user activities.
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                         User Interface                       │
-│                    (SwiftUI + AppKit Bridge)                 │
-├─────────────────────────────────────────────────────────────┤
-│                      Application Layer                       │
-│        AppState │ CategoryStore │ UpdaterManager             │
-├─────────────────────────────────────────────────────────────┤
-│                        Core Services                         │
-│   ScreenRecorder │ AnalysisManager │ LLMService │ Storage   │
-├─────────────────────────────────────────────────────────────┤
-│                      Infrastructure                          │
-│     GRDB SQLite │ Keychain │ FileSystem │ Networking        │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    subgraph "User Interface"
+        A[SwiftUI + AppKit Bridge]
+    end
+
+    subgraph "Application Layer"
+        B[AppState]
+        C[CategoryStore]
+        D[UpdaterManager]
+    end
+
+    subgraph "Core Services"
+        E[ScreenRecorder]
+        F[AnalysisManager]
+        G[LLMService]
+        H[Storage]
+    end
+
+    subgraph "Infrastructure"
+        I[GRDB SQLite]
+        J[Keychain]
+        K[FileSystem]
+        L[Networking]
+    end
+
+    A --> B
+    A --> C
+    A --> D
+    B --> E
+    B --> F
+    B --> G
+    B --> H
+    E --> I
+    E --> K
+    F --> G
+    F --> H
+    G --> L
+    H --> I
+    G --> J
 ```
 
 ## Directory Structure
@@ -69,12 +95,13 @@ Dayflow/
 - Multi-display support
 
 **Flow**:
-```
-User Activity → ScreenCaptureKit → Video Chunks → File System
-                                         ↓
-                                    StorageManager
-                                         ↓
-                                    GRDB Database
+```mermaid
+flowchart LR
+    A[User Activity] --> B[ScreenCaptureKit]
+    B --> C[Video Chunks]
+    C --> D[File System]
+    C --> E[StorageManager]
+    E --> F[GRDB Database]
 ```
 
 ### 2. Analysis Pipeline
@@ -86,14 +113,14 @@ User Activity → ScreenCaptureKit → Video Chunks → File System
 - Manages retry logic
 
 **Flow**:
-```
-Timer → Check for unprocessed chunks → Create batch → LLMService
-                                             ↓
-                                      Process Video
-                                             ↓
-                                    Generate Observations
-                                             ↓
-                                    Create Timeline Cards
+```mermaid
+flowchart TD
+    A[Timer] --> B[Check for unprocessed chunks]
+    B --> C[Create batch]
+    C --> D[LLMService]
+    D --> E[Process Video]
+    E --> F[Generate Observations]
+    F --> G[Create Timeline Cards]
 ```
 
 ### 3. Storage Architecture
@@ -119,10 +146,15 @@ Timer → Check for unprocessed chunks → Create batch → LLMService
 - Sliding window context (1 hour)
 
 **Provider Flow**:
-```
-LLMService → Provider Selection → API Call → Response Parsing
-                ↓                     ↓            ↓
-          GeminiProvider        OllamaProvider  Error Handling
+```mermaid
+flowchart LR
+    A[LLMService] --> B[Provider Selection]
+    B --> C[API Call]
+    C --> D[Response Parsing]
+
+    B --> E[GeminiProvider]
+    B --> F[OllamaProvider]
+    C --> G[Error Handling]
 ```
 
 ### 5. UI Architecture
@@ -133,15 +165,16 @@ LLMService → Provider Selection → API Call → Response Parsing
 - Real-time updates via @Published
 
 **Component Hierarchy**:
-```
-MainView
-├── LogoBadgeView
-├── Sidebar (tabs)
-└── Content Area
-    ├── CanvasTimelineDataView
-    ├── DashboardView
-    ├── JournalView
-    └── SettingsView
+```mermaid
+graph TD
+    A[MainView] --> B[LogoBadgeView]
+    A --> C[Sidebar - tabs]
+    A --> D[Content Area]
+
+    D --> E[CanvasTimelineDataView]
+    D --> F[DashboardView]
+    D --> G[JournalView]
+    D --> H[SettingsView]
 ```
 
 ## Key Design Patterns
@@ -178,29 +211,38 @@ protocol StorageManaging {
 ## Data Flow
 
 ### Recording to Timeline
-```
-1. Screen Capture (1 FPS)
-   ↓
-2. Video Chunks (15 seconds)
-   ↓
-3. Batch Creation (15 minutes)
-   ↓
-4. LLM Analysis
-   ├── Video Upload (Gemini) or Frame Extraction (Local)
-   ├── Transcription to Observations
-   └── Activity Card Generation
-   ↓
-5. Timeline Display
-   ├── Sliding Window Replacement
-   ├── Category Assignment
-   └── UI Updates
+```mermaid
+flowchart TD
+    A[1. Screen Capture<br/>1 FPS] --> B[2. Video Chunks<br/>15 seconds]
+    B --> C[3. Batch Creation<br/>15 minutes]
+    C --> D[4. LLM Analysis]
+
+    D --> E[Video Upload<br/>Gemini]
+    D --> F[Frame Extraction<br/>Local]
+    D --> G[Transcription to<br/>Observations]
+    D --> H[Activity Card<br/>Generation]
+
+    E --> I[5. Timeline Display]
+    F --> I
+    G --> I
+    H --> I
+
+    I --> J[Sliding Window<br/>Replacement]
+    I --> K[Category<br/>Assignment]
+    I --> L[UI Updates]
 ```
 
 ### State Management
-```
-User Action → View → ViewModel → Service → Storage
-                ↑                     ↓
-            UI Update ← Observable ← State Change
+```mermaid
+flowchart LR
+    A[User Action] --> B[View]
+    B --> C[ViewModel]
+    C --> D[Service]
+    D --> E[Storage]
+    E --> F[State Change]
+    F --> G[Observable]
+    G --> H[UI Update]
+    H --> B
 ```
 
 ## Critical Design Decisions
